@@ -4,7 +4,7 @@ FastAPI server for running latency distribution tests on Linkup API.
 """
 
 from fastapi import FastAPI, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
@@ -12,6 +12,10 @@ import time
 import statistics
 from typing import Literal
 import os
+from pathlib import Path
+
+# Get the directory where this script is located
+BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(title="Linkup Latency Dashboard")
 
@@ -166,7 +170,8 @@ def calculate_distribution(results: list, num_bins: int = 20) -> dict:
 @app.get("/")
 async def serve_frontend():
     """Serve the frontend."""
-    return FileResponse("index.html")
+    index_path = BASE_DIR / "index.html"
+    return FileResponse(index_path)
 
 
 @app.get("/api/status")
