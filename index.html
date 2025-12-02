@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linkup Latency Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-elevated: #1a1a25;
+            --linkup-primary: #00d4aa;
+            --linkup-secondary: #00b894;
+            --linkup-glow: rgba(0, 212, 170, 0.3);
+            --accent: #7c3aed;
+            --accent-glow: rgba(124, 58, 237, 0.3);
+            --text-primary: #f0f0f5;
+            --text-secondary: #8888a0;
+            --text-muted: #555566;
+            --border: #2a2a3a;
+            --success: #00d4aa;
+            --warning: #ffc107;
+            --error: #ff4757;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 30% 20%, var(--linkup-glow) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, var(--accent-glow) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-dark) 0%, #0d0d15 100%);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--linkup-primary), var(--linkup-secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--linkup-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 300;
+            margin-top: 8px;
+        }
+
+        .control-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--linkup-primary);
+            box-shadow: 0 0 0 3px var(--linkup-glow);
+        }
+
+        .control-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--linkup-primary), var(--linkup-secondary));
+            color: var(--bg-dark);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--linkup-glow);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .progress-section {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .progress-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--linkup-primary);
+        }
+
+        .progress-stats {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: var(--bg-elevated);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--linkup-primary), var(--accent));
+            border-radius: 6px;
+            transition: width 0.3s ease-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card.highlight {
+            border-color: var(--linkup-primary);
+            background: linear-gradient(180deg, rgba(0, 212, 170, 0.1), var(--bg-card));
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--linkup-primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-card.highlight .stat-value {
+            font-size: 2.2rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 1000px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .percentiles-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .percentile-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .percentile-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .percentile-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .recent-results {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .recent-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .results-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .results-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .results-list::-webkit-scrollbar-track {
+            background: var(--bg-elevated);
+            border-radius: 3px;
+        }
+
+        .results-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .result-index {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            width: 50px;
+        }
+
+        .result-query {
+            color: var(--text-secondary);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0 16px;
+        }
+
+        .result-latency {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .result-latency.fast {
+            color: var(--success);
+        }
+
+        .result-latency.medium {
+            color: var(--warning);
+        }
+
+        .result-latency.slow {
+            color: var(--error);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 1.1rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--linkup-primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <h1>Linkup <span>Latency Test</span></h1>
+            </div>
+            <p class="subtitle">Measure and analyze Linkup API response times at scale</p>
+        </header>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <label>Number of Requests</label>
+                <input type="number" id="numRequests" value="100" min="1" max="1000">
+                <p class="control-hint">1 to 1000 requests</p>
+            </div>
+            <div class="control-group">
+                <label>Depth Mode</label>
+                <select id="depth">
+                    <option value="fast">Fast</option>
+                    <option value="deep">Deep</option>
+                </select>
+                <p class="control-hint">Fast = quicker, Deep = more thorough</p>
+            </div>
+            <button class="btn btn-primary" id="runBtn" onclick="runTest()">
+                <span>🚀</span> Run Test
+            </button>
+            <button class="btn btn-secondary" onclick="resetTest()">
+                <span>🔄</span> Reset
+            </button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-header">
+                <span class="progress-title">🔄 Testing in progress...</span>
+                <span class="progress-stats" id="progressStats">0 / 0 requests</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card highlight">
+                    <div class="stat-value" id="statAvg">-</div>
+                    <div class="stat-label">Average</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statMedian">-</div>
+                    <div class="stat-label">Median (P50)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statMin">-</div>
+                    <div class="stat-label">Min</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statMax">-</div>
+                    <div class="stat-label">Max</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statStdev">-</div>
+                    <div class="stat-label">Std Dev</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statSuccess">-</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">📊 Latency Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">📈 Latency Over Time</h3>
+                    <div class="chart-container">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                    <div class="percentiles-grid">
+                        <div class="percentile-item">
+                            <div class="percentile-value" id="p50">-</div>
+                            <div class="percentile-label">P50</div>
+                        </div>
+                        <div class="percentile-item">
+                            <div class="percentile-value" id="p90">-</div>
+                            <div class="percentile-label">P90</div>
+                        </div>
+                        <div class="percentile-item">
+                            <div class="percentile-value" id="p95">-</div>
+                            <div class="percentile-label">P95</div>
+                        </div>
+                        <div class="percentile-item">
+                            <div class="percentile-value" id="p99">-</div>
+                            <div class="percentile-label">P99</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recent-results">
+                <h3 class="recent-title">📋 Recent Results</h3>
+                <div class="results-list" id="resultsList"></div>
+            </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <div class="empty-state-icon">📊</div>
+            <p class="empty-state-text">Configure your test and click "Run Test" to start</p>
+        </div>
+
+        <footer>
+            <p>Built for Linkup API performance testing</p>
+            <p style="margin-top: 8px;">
+                <a href="https://docs.linkup.so" target="_blank">Linkup Documentation</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        let distributionChart = null;
+        let timelineChart = null;
+        let pollInterval = null;
+
+        async function runTest() {
+            const numRequests = parseInt(document.getElementById('numRequests').value);
+            const depth = document.getElementById('depth').value;
+            
+            if (numRequests < 1 || numRequests > 1000) {
+                alert('Number of requests must be between 1 and 1000');
+                return;
+            }
+            
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('progressSection').classList.add('active');
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            try {
+                await fetch('/api/run-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        num_requests: numRequests,
+                        depth: depth
+                    })
+                });
+                
+                pollInterval = setInterval(pollStatus, 500);
+            } catch (error) {
+                console.error('Error starting test:', error);
+                document.getElementById('runBtn').disabled = false;
+            }
+        }
+
+        async function pollStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                updateProgress(data);
+                updateStats(data);
+                updateResults(data);
+                updateCharts(data);
+                
+                if (data.status === 'completed') {
+                    clearInterval(pollInterval);
+                    document.getElementById('runBtn').disabled = false;
+                    document.getElementById('progressSection').classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error polling status:', error);
+            }
+        }
+
+        function updateProgress(data) {
+            document.getElementById('progressFill').style.width = `${data.progress}%`;
+            document.getElementById('progressStats').textContent = 
+                `${data.completed_requests} / ${data.total_requests} requests`;
+        }
+
+        function updateStats(data) {
+            if (!data.stats) return;
+            
+            const s = data.stats;
+            document.getElementById('statAvg').textContent = `${Math.round(s.avg_ms)}ms`;
+            document.getElementById('statMedian').textContent = `${Math.round(s.median_ms)}ms`;
+            document.getElementById('statMin').textContent = `${Math.round(s.min_ms)}ms`;
+            document.getElementById('statMax').textContent = `${Math.round(s.max_ms)}ms`;
+            document.getElementById('statStdev').textContent = `${Math.round(s.stdev_ms)}ms`;
+            document.getElementById('statSuccess').textContent = `${s.success_rate}%`;
+            
+            document.getElementById('p50').textContent = `${Math.round(s.p50_ms)}ms`;
+            document.getElementById('p90').textContent = `${Math.round(s.p90_ms)}ms`;
+            document.getElementById('p95').textContent = `${Math.round(s.p95_ms)}ms`;
+            document.getElementById('p99').textContent = `${Math.round(s.p99_ms)}ms`;
+        }
+
+        function updateResults(data) {
+            if (!data.results || data.results.length === 0) return;
+            
+            const list = document.getElementById('resultsList');
+            const startIndex = data.completed_requests - data.results.length;
+            
+            list.innerHTML = data.results.map((r, i) => {
+                const latencyClass = r.latency_ms < 500 ? 'fast' : r.latency_ms < 1500 ? 'medium' : 'slow';
+                return `
+                    <div class="result-item">
+                        <span class="result-index">#${startIndex + i + 1}</span>
+                        <span class="result-query">${r.query}</span>
+                        <span class="result-latency ${r.success ? latencyClass : 'slow'}">
+                            ${r.success ? Math.round(r.latency_ms) + 'ms' : 'Error'}
+                        </span>
+                    </div>
+                `;
+            }).reverse().join('');
+        }
+
+        function updateCharts(data) {
+            if (!data.distribution) return;
+            
+            const dist = data.distribution;
+            
+            // Distribution Chart (Histogram)
+            const distCtx = document.getElementById('distributionChart').getContext('2d');
+            
+            if (distributionChart) {
+                distributionChart.data.labels = dist.bins;
+                distributionChart.data.datasets[0].data = dist.counts;
+                distributionChart.update('none');
+            } else {
+                distributionChart = new Chart(distCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: dist.bins,
+                        datasets: [{
+                            label: 'Requests',
+                            data: dist.counts,
+                            backgroundColor: 'rgba(0, 212, 170, 0.7)',
+                            borderColor: '#00d4aa',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a25',
+                                titleColor: '#f0f0f5',
+                                bodyColor: '#8888a0',
+                                callbacks: {
+                                    label: (ctx) => `${ctx.raw} requests`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: '#2a2a3a' },
+                                ticks: { 
+                                    color: '#8888a0',
+                                    maxRotation: 45,
+                                    font: { size: 10 }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Latency (ms)',
+                                    color: '#8888a0'
+                                }
+                            },
+                            y: {
+                                grid: { color: '#2a2a3a' },
+                                ticks: { color: '#8888a0' },
+                                title: {
+                                    display: true,
+                                    text: 'Count',
+                                    color: '#8888a0'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Timeline Chart (Line)
+            const timeCtx = document.getElementById('timelineChart').getContext('2d');
+            const latencies = dist.latencies;
+            const labels = latencies.map((_, i) => i + 1);
+            
+            if (timelineChart) {
+                timelineChart.data.labels = labels;
+                timelineChart.data.datasets[0].data = latencies;
+                timelineChart.update('none');
+            } else {
+                timelineChart = new Chart(timeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Latency',
+                            data: latencies,
+                            borderColor: '#7c3aed',
+                            backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                            tension: 0.1,
+                            fill: true,
+                            pointRadius: latencies.length > 100 ? 0 : 3,
+                            pointHoverRadius: 5,
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a25',
+                                titleColor: '#f0f0f5',
+                                bodyColor: '#8888a0',
+                                callbacks: {
+                                    title: (ctx) => `Request #${ctx[0].label}`,
+                                    label: (ctx) => `${Math.round(ctx.raw)}ms`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: '#2a2a3a' },
+                                ticks: { 
+                                    color: '#8888a0',
+                                    maxTicksLimit: 10
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Request #',
+                                    color: '#8888a0'
+                                }
+                            },
+                            y: {
+                                grid: { color: '#2a2a3a' },
+                                ticks: { 
+                                    color: '#8888a0',
+                                    callback: (v) => v + 'ms'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Latency (ms)',
+                                    color: '#8888a0'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        async function resetTest() {
+            if (pollInterval) clearInterval(pollInterval);
+            
+            await fetch('/api/reset', { method: 'POST' });
+            
+            document.getElementById('runBtn').disabled = false;
+            document.getElementById('progressSection').classList.remove('active');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+            
+            if (distributionChart) {
+                distributionChart.destroy();
+                distributionChart = null;
+            }
+            if (timelineChart) {
+                timelineChart.destroy();
+                timelineChart = null;
+            }
+        }
+    </script>
+</body>
+</html>
